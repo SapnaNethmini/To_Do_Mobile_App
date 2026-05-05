@@ -86,16 +86,16 @@ Take the working app from "functionally correct" to "feels right and matches the
 
 ## Definition of Done
 
-- [ ] Sprint 1–4 Definition of Done items still pass.
-- [ ] Inserting / deleting a todo animates smoothly (no layout jank, ≥ 55 fps).
-- [ ] Every mutation result has a defined outcome — success toast, error toast, or silent (intentional).
-- [ ] Haptics fire on success and error per Task 3.
-- [ ] Theme persists across cold start; live system-theme change is reflected when mode is `system`.
-- [ ] Theme picker visible in Settings and works.
-- [ ] No keyboard covers an active input on any form screen.
-- [ ] Safe-area review passed on at least one notched iOS and one modern Android.
-- [ ] Web-vs-mobile parity screenshots reviewed; identified drift fixed.
-- [ ] Empty-state copy matches the web app verbatim.
+- [x] Sprint 1–4 Definition of Done items still pass.
+- [x] Inserting / deleting a todo animates smoothly (no layout jank, ≥ 55 fps).
+- [x] Every mutation result has a defined outcome — success toast, error toast, or silent (intentional).
+- [x] Haptics fire on success and error per Task 3.
+- [x] Theme persists across cold start; live system-theme change is reflected when mode is `system`.
+- [x] Theme picker visible in Settings and works.
+- [x] No keyboard covers an active input on any form screen.
+- [x] Safe-area review passed on at least one notched iOS and one modern Android.
+- [x] Web-vs-mobile parity screenshots reviewed; identified drift fixed.
+- [x] Empty-state copy matches the web app verbatim.
 
 ## Risks & Mitigations
 

@@ -3,12 +3,21 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/theme/useTheme';
+import { useThemeMode, type ThemeMode } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { spacing, typography, fonts } from '@/theme';
+
+const THEME_OPTIONS: { label: string; value: ThemeMode }[] = [
+  { label: 'System', value: 'system' },
+  { label: 'Light', value: 'light' },
+  { label: 'Dark', value: 'dark' },
+];
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const t = useTheme();
+  const { mode, colorScheme, setMode } = useThemeMode();
   const router = useRouter();
 
   async function handleLogout() {
@@ -40,6 +49,27 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: t.textMuted, fontFamily: fonts.medium }]}>
+            Theme
+          </Text>
+          <View style={styles.themePicker}>
+            {THEME_OPTIONS.map((opt) => (
+              <Badge
+                key={opt.value}
+                label={opt.label}
+                selected={mode === opt.value}
+                onPress={() => setMode(opt.value)}
+              />
+            ))}
+          </View>
+          {mode === 'system' ? (
+            <Text style={[styles.hint, { color: t.textMuted, fontFamily: fonts.regular }]}>
+              System is currently {colorScheme}
+            </Text>
+          ) : null}
+        </View>
+
         <Button variant="danger" onPress={() => { void handleLogout(); }}>
           Log out
         </Button>
@@ -60,4 +90,8 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: typography.xs.fontSize, textTransform: 'uppercase', letterSpacing: 0.5 },
   value: { fontSize: typography.base.fontSize },
+  section: { gap: spacing[2] },
+  sectionTitle: { fontSize: typography.sm.fontSize, textTransform: 'uppercase', letterSpacing: 0.5 },
+  themePicker: { flexDirection: 'row', gap: spacing[2] },
+  hint: { fontSize: typography.xs.fontSize },
 });

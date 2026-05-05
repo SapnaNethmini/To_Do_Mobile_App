@@ -2,14 +2,17 @@ import { useState, useCallback } from 'react';
 import {
   Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/theme/useTheme';
 import { useAuth } from '@/context/AuthContext';
@@ -31,6 +34,7 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const [status, setStatus] = useState<TodoStatus>('all');
   const [showForm, setShowForm] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const { data: todos, isPending, isRefetching, refetch } = useTodoList(status);
   const createMutation = useCreateTodo(status);
@@ -64,6 +68,10 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.bg }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={styles.header}>
         <Text style={[styles.title, { color: t.text, fontFamily: fonts.bold }]}>
           {user?.username ?? 'My Todos'}
@@ -94,7 +102,8 @@ export default function DashboardScreen() {
           {[1, 2, 3].map((k) => <SkeletonCard key={k} />)}
         </View>
       ) : (
-        <FlatList
+        <Animated.FlatList
+          itemLayoutAnimation={LinearTransition}
           data={todos ?? []}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
@@ -117,16 +126,18 @@ export default function DashboardScreen() {
         />
       )}
 
+
       {!showForm ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Create todo"
           onPress={() => setShowForm(true)}
-          style={[styles.fab, { backgroundColor: t.primary }]}
+          style={[styles.fab, { backgroundColor: t.primary, bottom: spacing[6] + insets.bottom }]}
         >
           <Feather name="plus" size={24} color="#fff" />
         </Pressable>
       ) : null}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -6,7 +6,8 @@ import {
 } from '@tanstack/react-query';
 import { todosApi, type TodoStatus } from '@/api/todos.api';
 import type { Todo } from '@/types/todo';
-import { showError } from '@/components/ui/Toast';
+import { showError, showSuccess } from '@/components/ui/Toast';
+import { hapticSuccess, hapticError } from '@/utils/haptics';
 
 const qk = {
   list: (status: TodoStatus) => ['todos', 'list', status] as QueryKey,
@@ -58,8 +59,13 @@ export function useCreateTodo(status: TodoStatus) {
       }
       return { prev };
     },
+    onSuccess: () => {
+      hapticSuccess();
+      showSuccess('Todo created');
+    },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev !== undefined) qc.setQueryData(qk.list(status), ctx.prev);
+      hapticError();
       showError('Failed to create todo');
     },
     onSettled: () => {
@@ -89,8 +95,18 @@ export function useUpdateTodo(status: TodoStatus) {
       );
       return { prev };
     },
+    onSuccess: (_data, { patch }) => {
+      // toggle is silent; explicit save shows a toast
+      if (patch.title !== undefined || patch.description !== undefined) {
+        hapticSuccess();
+        showSuccess('Todo saved');
+      } else {
+        hapticSuccess(); // toggle: light haptic, no toast
+      }
+    },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev !== undefined) qc.setQueryData(qk.list(status), ctx.prev);
+      hapticError();
       showError('Failed to update todo');
     },
     onSettled: () => {
@@ -111,8 +127,13 @@ export function useDeleteTodo(status: TodoStatus) {
       );
       return { prev };
     },
+    onSuccess: () => {
+      hapticSuccess();
+      showSuccess('Todo deleted');
+    },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev !== undefined) qc.setQueryData(qk.list(status), ctx.prev);
+      hapticError();
       showError('Failed to delete todo');
     },
     onSettled: () => {
