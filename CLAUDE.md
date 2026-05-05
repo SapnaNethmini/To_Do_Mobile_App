@@ -31,7 +31,7 @@ These are decided — do not relitigate without updating the spec:
 - **`@tanstack/react-query` v5** owns server state (todo list + mutations); React Context owns auth state only.
 - **`expo-secure-store`** for the JWT (Keychain/Keystore-backed). Never `AsyncStorage` for tokens.
 - **`Authorization: Bearer <jwt>`** header for mobile auth. Web continues to use httpOnly cookies — the backend supports both.
-- **NativeWind v4** for styling, mirroring the web app's Tailwind tokens (Slate/Indigo, dark-mode, rounded-xl cards).
+- **`StyleSheet.create` + a typed theme module** (`src/theme/`) for styling — **no NativeWind, no Tailwind on mobile**. Tokens (palette / spacing / radii / typography / shadows) are extracted once from the web app's Tailwind config into `src/theme/`; `useTheme()` resolves light/dark via `useColorScheme()`. Visual parity with web preserved (Slate/Indigo palette, Inter font, `rounded-xl` cards = `radii.xl: 12`).
 - **TypeScript strict** with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. No `any`.
 - Files ≤ ~150 lines; one responsibility per file; routes in `app/` stay thin and delegate to `src/`.
 

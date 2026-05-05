@@ -52,6 +52,7 @@ npx create-expo-app@latest . --template blank-typescript
 ```bash
 npx expo install expo-router expo-linking expo-constants expo-secure-store \
   expo-status-bar expo-splash-screen expo-font expo-haptics expo-image \
+  expo-linear-gradient \
   react-native-safe-area-context react-native-screens react-native-gesture-handler \
   react-native-reanimated
 
@@ -60,8 +61,7 @@ npm i axios @tanstack/react-query zod react-hook-form @hookform/resolvers \
   react-native-toast-message @expo/vector-icons \
   @expo-google-fonts/inter
 
-npm i nativewind tailwindcss
-npx tailwindcss init
+# No NativeWind / Tailwind. Styles use StyleSheet.create + the src/theme/ module.
 
 npm i -D @types/react typescript eslint prettier eslint-config-expo \
   jest @testing-library/react-native @testing-library/jest-native ts-jest \
@@ -70,15 +70,12 @@ npm i -D @types/react typescript eslint prettier eslint-config-expo \
 
 **Verify** `npm ls --depth=0` shows all packages without `UNMET` warnings.
 
-### 1.3 Configure Expo, Babel, Metro, NativeWind
+### 1.3 Configure Expo, Babel, Metro
 
 **Files**
 - `app.config.ts` — replace `app.json`. Set `name`, `slug`, `scheme: "todo"`, `plugins: ["expo-router", "expo-secure-store"]`, `experiments.typedRoutes: true`, `extra.apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:4000/api"`.
-- `babel.config.js` — preset `babel-preset-expo` with `jsxImportSource: 'nativewind'`, preset `nativewind/babel`, plugin `react-native-reanimated/plugin` **last**, `module-resolver` with alias `@ → ./src`.
-- `metro.config.js` — wrap `getDefaultConfig` with `withNativeWind` pointing to `./global.css`.
-- `tailwind.config.js` — `content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}']`, `presets: [require('nativewind/preset')]`, `darkMode: 'class'`, extend with theme tokens (placeholder; real values land in 1.5).
-- `global.css` — `@tailwind base; @tailwind components; @tailwind utilities;`.
-- `nativewind-env.d.ts` — `/// <reference types="nativewind/types" />`.
+- `babel.config.js` — preset `babel-preset-expo`, plugin `react-native-reanimated/plugin` **last**, `module-resolver` with alias `@ → ./src`. **No NativeWind preset, no `jsxImportSource` override.**
+- `metro.config.js` — standard `getDefaultConfig(__dirname)` from `expo/metro-config`. **No `withNativeWind` wrapper, no `global.css` reference.**
 
 **Verify** `npx expo start --clear` boots without parser errors.
 
@@ -92,16 +89,21 @@ npm i -D @types/react typescript eslint prettier eslint-config-expo \
 
 **Verify** `npx tsc --noEmit` passes on the empty app skeleton.
 
-### 1.5 Theme tokens + fonts
+### 1.5 Theme module + fonts
 
 **Files**
-- `src/theme/colors.ts` — copy values from spec §12 / blueprint §11.1.
-- `src/theme/spacing.ts` — copy 4-pt grid from blueprint §11.1.
-- `src/theme/typography.ts` — Inter family + sizes.
-- `src/theme/index.ts` — re-export.
-- Update `tailwind.config.js` to consume `colors`, `borderRadius` (`xl: 20`, `2xl: 28`), `fontFamily` Inter.
+- `src/theme/palette.ts` — Slate / Indigo / Violet / Emerald / Red palette steps extracted from `../To_do_web/client/tailwind.config.cjs` + `client/src/index.css`. Add a leading comment naming the source files so future syncs stay traceable.
+- `src/theme/theme.ts` — `light` + `dark` semantic token objects (`bg`, `surface`, `surfaceMuted`, `border`, `borderStrong`, `text`, `textMuted`, `textSubtle`, `primary`, `primaryGradient`, `primaryRing`, `danger`, `dangerBg`, `dangerBorder`, `success`, `successBg`, `successBorder`). Values per spec §12 / blueprint §11.1; dark-mode translucent surfaces use RGBA to match web's `bg-slate-800/80` exactly.
+- `src/theme/spacing.ts` — 4-pt grid: `{ 0.5: 2, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32 }`.
+- `src/theme/radii.ts` — `{ sm: 6, md: 8, lg: 8, xl: 12, full: 9999 }` (matching Tailwind's `rounded-lg: 8`, `rounded-xl: 12`).
+- `src/theme/typography.ts` — Inter family declarations + sizes (`xs: 12/16`, `sm: 14/20`, `base: 16/24`, `lg: 18/28`) + weights.
+- `src/theme/shadows.ts` — `sm` and `md` mapped to RN `shadowColor`/`shadowOpacity`/`shadowRadius`/`shadowOffset` + Android `elevation`.
+- `src/theme/useTheme.ts` — `useTheme()` returns `themes[useColorScheme() ?? 'light']`.
+- `src/theme/recipes.ts` — typed style helpers mirroring web recipes one-to-one: `cardStyle(theme)`, `btnPrimaryStyle(theme)`, `btnSecondaryStyle(theme)`, `btnDangerStyle(theme)`, `btnGhostStyle(theme)`, `inputStyle(theme)`, `badgeOpenStyle(theme)`, `badgeDoneStyle(theme)`, `alertErrorStyle(theme)`. `.btn-primary`'s indigo→violet gradient renders via `expo-linear-gradient`.
+- `src/theme/index.ts` — re-export everything.
+- Load Inter via `expo-font` + `@expo-google-fonts/inter` in `app/_layout.tsx`; hold splash until fonts ready.
 
-**Verify** `import { colors } from '@/theme'` resolves; Tailwind class `bg-surface` compiles in a test view.
+**Verify** `import { useTheme, palette, spacing, radii, recipes } from '@/theme'` resolves; a sample `<View style={recipes.cardStyle(useTheme())} />` renders correctly in light and dark when toggling system theme.
 
 ### 1.6 Validated env config
 
@@ -361,7 +363,7 @@ res.status(200).json({ data: { user: toUserDto(user), token } });
 **Files**
 - `src/context/ThemeContext.tsx`:
   - Modes: `system | light | dark`, persisted in AsyncStorage under `todo.theme`.
-  - Apply by setting NativeWind class on root view.
+  - Resolve the active scheme: `mode === 'system' ? useColorScheme() ?? 'light' : mode`. `useTheme()` consumes this resolved scheme via context (override) instead of `useColorScheme()` directly.
 - `app/(app)/settings.tsx` — theme picker.
 
 ### 7.4 Haptics

@@ -65,7 +65,7 @@
 | Cache (non-secret)   | `@react-native-async-storage/async-storage`                       | React Query cache persistence, last-seen filter, theme              |
 | Validation           | `zod` (shared style with backend)                                 | Single mental model across stack                                    |
 | Forms                | `react-hook-form` + `@hookform/resolvers/zod`                     | Best-in-class for RN; controlled fields + Zod                       |
-| Styling              | `nativewind` v4 (Tailwind for RN) + design tokens                 | Matches web app's Tailwind utilities                                |
+| Styling              | `StyleSheet.create` + `src/theme/` tokens (no NativeWind)         | Visual parity with web by extracting tokens — not by reusing the mechanism |
 | Icons                | `@expo/vector-icons` (Feather/Lucide subset)                      | Bundled with Expo, no native linking                                |
 | Animations           | `react-native-reanimated` v3 + `Layout` animations                | Smooth add/edit/delete transitions                                  |
 | Safe area / gestures | `react-native-safe-area-context`, `react-native-gesture-handler`  | Required by Expo Router and Reanimated                              |
@@ -74,6 +74,7 @@
 
 - **Expo Router over React Navigation directly.** Expo Router *uses* React Navigation under the hood, so we keep its power (stack/tabs/modal) while gaining file-based routes that mirror the web app's mental model (`/login`, `/(app)/index`, `/(app)/todos/[id]`).
 - **React Query over hand-rolled hooks.** Web app uses Context only; on mobile, list refresh, retries, and optimistic mutations are non-trivial enough that Query pays for itself.
+- **`StyleSheet.create` + a typed theme module over NativeWind / Tailwind on mobile.** NativeWind is Tailwind for RN (className → RN styles at build time). We deliberately avoid it: the mobile app is one codebase with no shared bundler with web, so the value of utility classes is small and the cost (extra preset, Babel JSX transform, content-glob debugging) is real. Instead we extract the web's Tailwind tokens (palette, spacing, radii, typography, shadows) into `src/theme/` once and consume them as TS values. Visual parity is preserved; the styling pipeline stays idiomatic RN with zero extra deps.
 - **SecureStore over AsyncStorage** for the JWT — `AsyncStorage` is plain text on disk.
 
 ---
@@ -259,9 +260,14 @@ To_do_mobile/
 │   │   └── queryClient.ts        # React Query defaults
 │   │
 │   ├── theme/
-│   │   ├── colors.ts             # tokens (light + dark)
+│   │   ├── palette.ts            # raw color steps from web Tailwind
+│   │   ├── theme.ts              # semantic tokens (light + dark)
 │   │   ├── spacing.ts
+│   │   ├── radii.ts
 │   │   ├── typography.ts
+│   │   ├── shadows.ts
+│   │   ├── useTheme.ts           # resolves themes[useColorScheme()]
+│   │   ├── recipes.ts            # cardStyle, btnPrimaryStyle, ...
 │   │   └── index.ts
 │   │
 │   ├── schemas/
@@ -281,8 +287,6 @@ To_do_mobile/
 ├── app.config.ts
 ├── babel.config.js
 ├── metro.config.js
-├── tailwind.config.js            # nativewind preset
-├── global.css                    # nativewind directives
 ├── tsconfig.json
 ├── package.json
 ├── .env.example
@@ -307,7 +311,7 @@ npx create-expo-app@latest . --template blank-typescript
 
 # core deps
 npx expo install expo-router expo-linking expo-constants expo-secure-store \
-  expo-status-bar expo-splash-screen expo-font \
+  expo-status-bar expo-splash-screen expo-font expo-linear-gradient \
   react-native-safe-area-context react-native-screens react-native-gesture-handler \
   react-native-reanimated
 
@@ -315,9 +319,8 @@ npx expo install expo-router expo-linking expo-constants expo-secure-store \
 npm i axios @tanstack/react-query zod react-hook-form @hookform/resolvers \
   @react-native-async-storage/async-storage
 
-# styling
-npm i nativewind tailwindcss
-npx tailwindcss init
+# styling: no extra deps — StyleSheet + the src/theme/ module are stdlib.
+# expo-linear-gradient (above) renders the .btn-primary indigo→violet gradient.
 
 # dev
 npm i -D @types/react @types/react-native typescript
@@ -342,7 +345,7 @@ npm i -D @types/react @types/react-native typescript
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
+    presets: ['babel-preset-expo'],
     plugins: ['react-native-reanimated/plugin'], // must be last
   };
 };
@@ -659,75 +662,187 @@ export const useAuth = () => {
 
 > **Goal:** a user who knows the web app should feel at home. Same color tokens, same spacing rhythm, same component vocabulary — translated to native primitives.
 
-### 11.1 Design tokens (mirror Tailwind config of web app)
+### 11.1 Design tokens (extracted from web Tailwind config)
+
+The web app uses **vanilla Tailwind defaults** (`theme: { extend: {} }`) plus a layer of component recipes in `client/src/index.css`. Mobile mirrors the palette and recipe shapes by lifting only the steps the web actually uses into a TypeScript theme module — no Tailwind dependency on mobile.
 
 ```ts
-// src/theme/colors.ts
-export const colors = {
-  light: {
-    bg:        '#F8FAFC', // slate-50
-    surface:   '#FFFFFF',
-    surfaceAlt:'#F1F5F9', // slate-100
-    border:    '#E2E8F0', // slate-200
-    text:      '#0F172A', // slate-900
-    textMuted: '#64748B', // slate-500
-    primary:   '#4F46E5', // indigo-600
-    primaryFg: '#FFFFFF',
-    success:   '#16A34A',
-    danger:    '#DC2626',
+// src/theme/palette.ts
+// Source of truth: ../To_do_web/client/tailwind.config.cjs and client/src/index.css.
+// Web uses vanilla Tailwind defaults (Slate / Indigo / Violet / Emerald / Red) +
+// component recipes (.btn, .card, .badge, .input). Mobile mirrors the palette
+// and recipe shapes; utility classes are not used on mobile.
+
+export const palette = {
+  slate: {
+    50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+    400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+    800: '#1e293b', 900: '#0f172a', 950: '#020617',
   },
-  dark: {
-    bg:        '#0F172A', // slate-900
-    surface:   '#1E293B', // slate-800
-    surfaceAlt:'#334155', // slate-700
-    border:    '#334155',
-    text:      '#F1F5F9',
-    textMuted: '#94A3B8',
-    primary:   '#818CF8', // indigo-400
-    primaryFg: '#0F172A',
-    success:   '#4ADE80',
-    danger:    '#F87171',
+  indigo: {
+    200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1',
+    600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 950: '#1e1b4b',
   },
+  violet: { 500: '#8b5cf6', 600: '#7c3aed' },
+  emerald: {
+    50: '#ecfdf5', 200: '#a7f3d0', 300: '#6ee7b7',
+    700: '#047857', 800: '#065f46', 950: '#022c22',
+  },
+  red: {
+    50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 300: '#fca5a5',
+    700: '#b91c1c', 800: '#991b1b', 900: '#7f1d1d', 950: '#450a0a',
+  },
+} as const;
+```
+
+```ts
+// src/theme/theme.ts
+import { palette } from './palette';
+
+const light = {
+  bg: '#bbb8b8',                          // matches web body bg
+  surface: '#ffffff',                     // .card
+  surfaceMuted: palette.slate[50],
+  border: palette.slate[200],
+  borderStrong: palette.slate[300],
+  text: palette.slate[900],
+  textMuted: palette.slate[600],
+  textSubtle: palette.slate[400],
+  primary: palette.indigo[600],
+  primaryGradient: [palette.indigo[600], palette.violet[600]] as const,
+  primaryRing: 'rgba(99,102,241,0.30)',   // indigo-500/30
+  danger: palette.red[700],
+  dangerBg: palette.red[50],
+  dangerBorder: palette.red[200],
+  success: palette.emerald[700],
+  successBg: palette.emerald[50],
+  successBorder: palette.emerald[200],
 };
+
+const dark = {
+  bg: '#000000',
+  surface: 'rgba(30,41,59,0.80)',         // slate-800/80
+  surfaceMuted: palette.slate[800],
+  border: palette.slate[700],
+  borderStrong: palette.slate[600],
+  text: palette.slate[200],
+  textMuted: palette.slate[300],
+  textSubtle: palette.slate[500],
+  primary: palette.indigo[400],
+  primaryGradient: [palette.indigo[500], palette.violet[500]] as const,
+  primaryRing: 'rgba(129,140,248,0.30)',
+  danger: palette.red[300],
+  dangerBg: 'rgba(69,10,10,0.40)',        // red-950/40
+  dangerBorder: 'rgba(127,29,29,0.60)',
+  success: palette.emerald[300],
+  successBg: 'rgba(2,44,34,0.40)',
+  successBorder: palette.emerald[800],
+};
+
+export const themes = { light, dark } as const;
+export type Theme = typeof light;
 ```
 
 ```ts
-// src/theme/spacing.ts
-export const spacing = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48 };
-export const radius  = { sm: 6, md: 10, lg: 14, xl: 20, '2xl': 28, full: 9999 };
-```
+// src/theme/spacing.ts, radii.ts, typography.ts, shadows.ts
+export const spacing = { 0.5: 2, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32 } as const;
 
-```ts
-// src/theme/typography.ts
+export const radii = { sm: 6, md: 8, lg: 8, xl: 12, full: 9999 } as const;
+//                                ^ rounded-lg in Tailwind = 8px
+
 export const typography = {
-  fontFamily: { sans: 'Inter_400Regular', medium: 'Inter_500Medium', bold: 'Inter_700Bold' },
-  size:   { xs: 12, sm: 14, base: 16, lg: 18, xl: 20, '2xl': 24, '3xl': 30 },
-  lh:     { tight: 1.2, normal: 1.4, relaxed: 1.6 },
-};
-```
+  xs: { fontSize: 12, lineHeight: 16 },
+  sm: { fontSize: 14, lineHeight: 20 },
+  base: { fontSize: 16, lineHeight: 24 },
+  lg: { fontSize: 18, lineHeight: 28 },
+  weights: { regular: '400', medium: '500', semibold: '600', bold: '700' },
+} as const;
 
-Load the **Inter** font via `expo-font` in the root layout — same family used on web for visual continuity.
+export const fonts = { sans: 'Inter', sansFallback: 'System' } as const;
 
-### 11.2 NativeWind: shared utility vocabulary
-
-Configure `tailwind.config.js` to mirror the web app's tokens:
-
-```js
-module.exports = {
-  content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
-  presets: [require('nativewind/preset')],
-  darkMode: 'class',
-  theme: {
-    extend: {
-      colors: { /* re-export tokens from src/theme/colors.ts */ },
-      borderRadius: { xl: '20px', '2xl': '28px' },
-      fontFamily: { sans: ['Inter_400Regular'], medium: ['Inter_500Medium'], bold: ['Inter_700Bold'] },
-    },
+export const shadows = {
+  sm: {
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 }, elevation: 1,
   },
-};
+  md: {
+    shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+  },
+} as const;
 ```
 
-Now `className="bg-surface dark:bg-surface rounded-xl shadow-md p-4"` works on a `<View>` and reads like the web JSX.
+```ts
+// src/theme/useTheme.ts
+import { useColorScheme } from 'react-native';
+import { themes, type Theme } from './theme';
+
+export function useTheme(): Theme {
+  return themes[useColorScheme() ?? 'light'];
+}
+```
+
+Load the **Inter** font (Regular / Medium / SemiBold / Bold) via `expo-font` in the root layout — same family used on web for visual continuity. Hold the splash screen until fonts resolve.
+
+### 11.2 Style application (StyleSheet + recipes)
+
+**Rule:** all component styles are `StyleSheet.create` objects, or inline objects when a value depends on `theme`. **No NativeWind, no Tailwind on mobile.** Recipes mirror the web's `.card`, `.btn-primary`, `.input`, `.badge-*` one-to-one as functions of the theme:
+
+```ts
+// src/theme/recipes.ts
+import { StyleSheet } from 'react-native';
+import { spacing } from './spacing';
+import { radii } from './radii';
+import { shadows } from './shadows';
+import type { Theme } from './theme';
+
+export const cardStyle = (t: Theme) =>
+  ({
+    backgroundColor: t.surface,
+    borderColor: t.border,
+    borderWidth: 1,
+    borderRadius: radii.xl,
+    padding: spacing[4],
+    ...shadows.sm,
+  } as const);
+
+export const inputStyle = (t: Theme) =>
+  ({
+    backgroundColor: t.surface,
+    borderColor: t.border,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    color: t.text,
+    fontSize: 14,
+  } as const);
+
+// .btn-primary — gradient via expo-linear-gradient at the call site:
+//   <LinearGradient colors={t.primaryGradient} start={...} end={...}>...</LinearGradient>
+export const btnPrimaryShellStyle = (t: Theme) =>
+  ({
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    overflow: 'hidden',
+    ...shadows.sm,
+  } as const);
+```
+
+Usage:
+
+```tsx
+import { useTheme } from '@/theme/useTheme';
+import { cardStyle } from '@/theme/recipes';
+
+export function TodoCard({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
+  return <View style={cardStyle(theme)}>{children}</View>;
+}
+```
+
+This is the same visual vocabulary as the web JSX (`className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"`) — translated to typed RN values.
 
 ### 11.3 Component vocabulary (matches web `components/ui/`)
 
@@ -744,7 +859,7 @@ Now `className="bg-surface dark:bg-surface rounded-xl shadow-md p-4"` works on a
 
 ### 11.4 Visual rules (parity with web)
 
-- **Cards:** `rounded-2xl`, 1px hairline border, `shadow-md` light / no shadow dark, ~16px padding.
+- **Cards:** `radii.xl` (12px, matching web's `.card` `rounded-xl`), 1px hairline border (`theme.border`), `shadows.sm` light / `shadows.md` dark, 16pt padding.
 - **Spacing rhythm:** 4 / 8 / 12 / 16 / 24 — same Tailwind 4px grid as web.
 - **Touch targets:** ≥ 44 × 44 pt (Apple HIG); icon-only buttons get padding to meet that.
 - **Dark mode:** follow system by default, user can override in Settings; persist choice in AsyncStorage.
@@ -973,10 +1088,11 @@ Build profiles in `eas.json` (when you adopt EAS Build) carry the right URL per 
 
 ### Phase 1 — Foundation (½ day)
 1. `npx create-expo-app`, install deps from §6.1.
-2. Configure NativeWind, Babel, fonts, splash, app icon.
-3. `env.ts` with Zod validation; `app.config.ts` reads `EXPO_PUBLIC_API_URL`.
-4. Set up `tsconfig.json` strict + path aliases; ESLint + Prettier.
-5. Verify `npx expo start` runs in Expo Go on your phone.
+2. Configure Babel (Reanimated plugin **last**), Inter fonts via `expo-font`, splash, app icon. **No NativeWind/Tailwind setup.**
+3. Build the theme module (`src/theme/` — `palette.ts`, `theme.ts`, `spacing.ts`, `radii.ts`, `typography.ts`, `shadows.ts`, `useTheme.ts`, `recipes.ts`) by extracting tokens from `../To_do_web/client/tailwind.config.cjs` + `client/src/index.css`.
+4. `env.ts` with Zod validation; `app.config.ts` reads `EXPO_PUBLIC_API_URL`.
+5. Set up `tsconfig.json` strict + path aliases; ESLint + Prettier.
+6. Verify `npx expo start` runs in Expo Go on your phone.
 
 ### Phase 2 — Navigation skeleton
 1. `app/_layout.tsx` with providers (Query, Auth, Theme, SafeArea, GestureHandler).

@@ -51,8 +51,8 @@ Take the working app from "functionally correct" to "feels right and matches the
    - Verify: real-device tap on the checkbox produces a subtle vibration; failure produces a stronger one.
 
 4. **Real `ThemeContext` with persistence**
-   - Files: `src/context/ThemeContext.tsx`, `app/_layout.tsx` (apply NativeWind class on root view based on resolved mode).
-   - Action: state is `'system' | 'light' | 'dark'`. Persist user choice in AsyncStorage under key `todo.theme`. Resolve to actual `light/dark` by reading `useColorScheme()` when mode is `system`. Expose `mode`, `setMode`, and the resolved `colorScheme`.
+   - Files: `src/context/ThemeContext.tsx`, `src/theme/useTheme.ts`, `app/_layout.tsx`.
+   - Action: state is `'system' | 'light' | 'dark'`. Persist user choice in AsyncStorage under key `todo.theme`. Resolve to actual `light/dark` by reading `useColorScheme()` when mode is `system`. `useTheme()` consumes the resolved scheme to return `themes[scheme]` from `src/theme/theme.ts`. Expose `mode`, `setMode`, and the resolved `colorScheme`.
    - Verify: kill app with mode set to `dark`; relaunch → app boots in dark before any flash; toggle iOS / Android system theme while mode is `system` → app updates live.
 
 5. **Theme picker in Settings**

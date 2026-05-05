@@ -36,7 +36,7 @@
 | Token storage  | `expo-secure-store`                       |
 | Cache          | `@react-native-async-storage/async-storage` |
 | Validation     | `zod` + `react-hook-form` + `@hookform/resolvers/zod` |
-| Styling        | `nativewind` v4 + theme tokens            |
+| Styling        | `StyleSheet.create` + `src/theme/` tokens (no NativeWind / Tailwind) |
 | Icons          | `@expo/vector-icons`                      |
 | Animations     | `react-native-reanimated` v3              |
 | Safe area / gestures | `react-native-safe-area-context`, `react-native-gesture-handler` |
@@ -68,15 +68,13 @@ To_do_mobile/
 │   ├── hooks/                 # useAuth.ts, useTodos.ts, ...
 │   ├── services/              # auth.service.ts, token.storage.ts
 │   ├── config/                # env.ts, queryClient.ts
-│   ├── theme/                 # colors.ts, spacing.ts, typography.ts
+│   ├── theme/                 # palette.ts, theme.ts, spacing.ts, radii.ts, typography.ts, shadows.ts, useTheme.ts, recipes.ts
 │   ├── schemas/               # auth.schema.ts, todos.schema.ts
 │   ├── types/                 # todo.ts, user.ts, api.ts
 │   └── utils/
 ├── assets/
 ├── app.config.ts
 ├── babel.config.js
-├── tailwind.config.js
-├── global.css
 ├── tsconfig.json
 └── .env.example
 ```
@@ -257,14 +255,16 @@ Use `z.infer` for input types. Server is still source of truth — surface `erro
 
 ## 12. UI / UX
 
-### Theme tokens (`src/theme/`)
-- `colors.ts`: light + dark palettes (slate/indigo) — values per blueprint §11.1.
-- `spacing.ts`: 4-pt grid (1..12).
-- `typography.ts`: Inter font family, sizes xs..3xl.
-- Load Inter via `expo-font` in root layout; hold splash until fonts + auth ready.
+### Theme module (`src/theme/`)
+- `palette.ts`: raw color steps extracted from `../To_do_web/client/tailwind.config.cjs` + `client/src/index.css` (Slate, Indigo, Violet, Emerald, Red — only the steps actually referenced by the web recipes). Source-of-truth comment points back at the web files for traceability.
+- `theme.ts`: `light` + `dark` semantic token sets (`bg`, `surface`, `surfaceMuted`, `border`, `borderStrong`, `text`, `textMuted`, `primary`, `primaryGradient`, `primaryRing`, `danger`, `success`, etc.) consuming `palette`. Values mirror the web `.card` / `.btn-*` / `.badge-*` / `.input` recipes; dark-mode translucent surfaces use RGBA to match web's `bg-slate-800/80` exactly.
+- `spacing.ts`, `radii.ts`, `typography.ts`, `shadows.ts`: numeric scales matching the Tailwind defaults the web recipes actually use (`rounded-xl: 12`, `rounded-lg: 8`, 4-pt spacing, `shadow-sm` / `shadow-md` mapped to RN `shadowOffset`/`shadowOpacity`/`shadowRadius` + Android `elevation`).
+- `useTheme.ts`: `useTheme()` returns `themes[useColorScheme() ?? 'light']`. Components consume color tokens via the hook; spacing/radii/shadows are imported as scalars.
+- `recipes.ts`: typed style helpers `cardStyle(theme)`, `btnPrimaryStyle(theme)`, `btnSecondaryStyle(theme)`, `btnDangerStyle(theme)`, `btnGhostStyle(theme)`, `inputStyle(theme)`, `badgeOpenStyle(theme)`, `badgeDoneStyle(theme)`, `alertErrorStyle(theme)` — one-to-one with web's CSS recipes. `.btn-primary`'s indigo→violet gradient renders via `expo-linear-gradient`.
+- Load Inter (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`) via `expo-font` in root layout; hold splash until fonts + auth ready.
 
-### NativeWind
-- `tailwind.config.js`: re-export theme tokens; `darkMode: 'class'`; content globs cover `app/**` and `src/**`.
+### Styling rule
+**No NativeWind, no Tailwind on mobile.** All component styles are written as `StyleSheet.create` objects, or inline objects when a value depends on `theme`. The web app continues to use Tailwind; the mobile app mirrors its visual tokens, not its mechanism. The web's stationery PNG background (`/backgrounds/stationery.png` with a CSS radial-gradient mask) is rendered full-bleed at low opacity on mobile — the radial mask is web-only and intentionally not reproduced.
 
 ### Component library (`src/components/ui/`)
 - `Button` — variants: primary | secondary | ghost | danger; sizes; loading state; haptics on press.
@@ -342,7 +342,8 @@ Each phase is a checkpoint — do not advance until it passes its acceptance cri
 
 ### Phase 1 — Foundation
 - Init Expo TS app, install deps from blueprint §6.1.
-- Configure NativeWind, Babel (Reanimated plugin **last**), Inter fonts, splash, app icon.
+- Configure Babel (Reanimated plugin **last**), Inter fonts via `expo-font` (Regular/Medium/SemiBold/Bold), splash, app icon. **No NativeWind/Tailwind setup.**
+- Build the theme module (`src/theme/` — palette, theme, spacing, radii, typography, shadows, useTheme, recipes) by extracting tokens from `../To_do_web/client/tailwind.config.cjs` + `client/src/index.css`.
 - `app.config.ts` reads `EXPO_PUBLIC_API_URL`; `src/config/env.ts` Zod-validates it.
 - Strict `tsconfig.json` + path aliases + ESLint + Prettier.
 - ✅ **Done when:** `npx expo start` boots, QR opens in Expo Go, `env.apiUrl` logs cleanly.
