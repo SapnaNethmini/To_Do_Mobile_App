@@ -86,13 +86,13 @@ Stand up a typed API client that talks to the existing backend, and apply the fo
 
 ## Definition of Done
 
-- [ ] `npx jest src/api` passes (≥ 3 normalizer cases).
-- [ ] `npx tsc --noEmit` and ESLint clean.
-- [ ] Backend integration tests still green after spec §5 edits.
-- [ ] Web app's full register/login/CRUD flow still passes (no regressions).
-- [ ] From a physical device on Expo Go, the debug button surfaces a normalized 401 and a normalized network error.
-- [ ] All Sprint 1 Definition of Done items still pass (no regressions).
-- [ ] No `Authorization` header values appear in any log output.
+- [x] `npx jest src/api` passes (≥ 3 normalizer cases).
+- [x] `npx tsc --noEmit` and ESLint clean.
+- [x] Backend integration tests still green after spec §5 edits.
+- [x] Web app's full register/login/CRUD flow still passes (no regressions).
+- [x] From a physical device on Expo Go, the debug button surfaces a normalized 401 and a normalized network error.
+- [x] All Sprint 1 Definition of Done items still pass (no regressions).
+- [x] No `Authorization` header values appear in any log output.
 
 ## Risks & Mitigations
 
