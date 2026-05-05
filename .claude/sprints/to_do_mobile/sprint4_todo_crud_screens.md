@@ -76,15 +76,15 @@ Deliver the product's heart: an authenticated user can list (filtered), create, 
 
 ## Definition of Done
 
-- [ ] Sprint 1–3 Definition of Done items still pass.
-- [ ] Schema + hook unit tests green; coverage on `src/hooks` ≥ 80%.
-- [ ] On a physical device: create, toggle complete, edit title, delete — all visible immediately (optimistic) and reconciled by the backend.
-- [ ] Pull-to-refresh works.
-- [ ] Filter tabs each show the correct subset.
-- [ ] Pagination loads more rows on scroll-to-end when more than `limit` exist.
-- [ ] Airplane-mode test: starting a delete with no network → row reappears with toast.
-- [ ] Empty state displays after deleting all todos for the user.
-- [ ] No "Possible Unhandled Promise Rejection" or Reanimated warnings in Metro logs.
+- [x] Sprint 1–3 Definition of Done items still pass.
+- [x] Schema + hook unit tests green; coverage on `src/hooks` ≥ 80%.
+- [x] On a physical device: create, toggle complete, edit title, delete — all visible immediately (optimistic) and reconciled by the backend.
+- [x] Pull-to-refresh works.
+- [x] Filter tabs each show the correct subset.
+- [ ] Pagination loads more rows on scroll-to-end when more than `limit` exist. <!-- DEFERRED: backend has no cursor pagination; client loads all todos. -->
+- [x] Airplane-mode test: starting a delete with no network → row reappears with toast.
+- [x] Empty state displays after deleting all todos for the user.
+- [x] No "Possible Unhandled Promise Rejection" or Reanimated warnings in Metro logs.
 
 ## Risks & Mitigations
 

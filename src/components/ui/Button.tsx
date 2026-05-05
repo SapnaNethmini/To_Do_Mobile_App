@@ -13,9 +13,9 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 type Props = PressableProps & {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  loading?: boolean;
+  variant?: ButtonVariant | undefined;
+  size?: ButtonSize | undefined;
+  loading?: boolean | undefined;
   children: React.ReactNode;
 };
 
