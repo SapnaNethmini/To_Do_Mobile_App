@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "react-native-design",
+  "owner": "wshobson",
+  "repo": "agents",
+  "path": "plugins/ui-design/skills/react-native-design",
+  "branch": "main",
+  "sha": "9c3ce3cfcfa637b906d00eda895deb9f7d73bb87",
+  "source": "manual"
+}

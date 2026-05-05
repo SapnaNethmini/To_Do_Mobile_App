@@ -5,7 +5,7 @@ argument-hint: [optional: number of sprints to produce, e.g. "6"]
 
 # /create_sprint
 
-Generate a sprint breakdown for **this project** and write one file per sprint into `sprints/<project_name>/`. Each sprint file is a self-contained, executable plan that a developer (or future Claude) can pick up without re-reading the whole spec.
+Generate a sprint breakdown for **this project** and write one file per sprint into `.claude/sprints/<project_name>/`. Each sprint file is a self-contained, executable plan that a developer (or future Claude) can pick up without re-reading the whole spec.
 
 User-supplied argument (optional): `$ARGUMENTS` — if a number is provided, produce exactly that many sprints. Otherwise, **you decide** the right count based on the project's complexity (typical range: 4–8 sprints).
 
@@ -71,9 +71,9 @@ File naming: `sprint{N}_{title}.md` — e.g. `sprint1_foundation_and_navigation.
 
 ## Step 5 — Write the sprint files
 
-For each sprint, create `sprints/<project_name>/sprint{N}_{title}.md` using the template below.
+For each sprint, create `.claude/sprints/<project_name>/sprint{N}_{title}.md` using the template below.
 
-> Create the `sprints/<project_name>/` directory if it doesn't exist. **Do not overwrite existing sprint files** — if a file already exists, ask the user whether to skip, overwrite, or version it as `sprint{N}_{title}.v2.md`.
+> Create the `.claude/sprints/<project_name>/` directory if it doesn't exist. **Do not overwrite existing sprint files** — if a file already exists, ask the user whether to skip, overwrite, or version it as `sprint{N}_{title}.v2.md`.
 
 ### Sprint file template
 
@@ -167,7 +167,7 @@ After writing all files, output:
 
 - Don't write a single mega-file with all sprints. One file per sprint.
 - Don't number sprints with leading zeros (`sprint1_…`, not `sprint01_…`).
-- Don't put sprint files anywhere other than `sprints/<project_name>/`.
+- Don't put sprint files anywhere other than `.claude/sprints/<project_name>/`.
 - Don't paraphrase the spec into sprints — reference its sections by number.
 - Don't invent acceptance criteria the spec doesn't already specify; cite the spec's §17 (or equivalent) for definition-of-done items.
 - Don't proceed if the spec/plan is missing — ask the user to supply one or run the planning commands first.

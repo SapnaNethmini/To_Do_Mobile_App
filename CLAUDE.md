@@ -81,3 +81,31 @@ npx jest -t "normalizeApiError"  # run by test name
 - When the user asks "what should I build next": cite the plan's current phase.
 - When code disagrees with the spec: the spec is the contract — fix the code or, if the spec is wrong, propose updating the spec first.
 - The blueprint and spec already include code samples for the harder pieces (axios interceptors, AuthContext, optimistic React Query mutations, SecureStore wrapper). Copy them rather than reinventing.
+
+## Git workflow (strict)
+
+**Base branch:** `main`. **Default remote:** `origin` on GitHub.
+
+### Feature work (anything that touches application code)
+
+1. Every new feature gets a **tag** (a short label, e.g. `ui-redesign`, `optimistic-toggle`, `theme-picker`).
+2. The tag becomes the branch slug: `feat/<tag>` for features, `fix/<tag>` for bug fixes.
+3. **Always start a feature branch from `main`.** `git checkout main && git pull && git checkout -b feat/<tag>`.
+4. **Before creating a new branch, the current branch must be fully shipped** — committed, pushed, and have a PR open against `main`. No half-finished work left behind.
+5. Commits follow Conventional Commits: `feat: …`, `fix: …`, `chore: …`, `docs: …`, `refactor: …`, `test: …`. Pick the verb that matches the change.
+6. Push and open a PR with `gh pr create --base main`.
+
+### Exempt from the branch rule
+
+These can be committed on the current branch (whatever it is) — no new feature branch required:
+
+- `CLAUDE.md`
+- `.claude/skills.md` (or any skills file)
+- Slash commands under `.claude/commands/`
+- **Anything under `.claude/`** (specs, plans, blueprints, sprints, agents)
+
+Rationale: these are meta-files about how the project is run, not the product itself. Forcing a feature branch for a docs tweak just creates ceremony.
+
+### When in doubt
+
+Use `/commit_message` (see `.claude/commands/commit_message.md`) — it implements the rules above end-to-end: detects the kind of change, drafts the right commit message, and decides whether a PR is needed.
