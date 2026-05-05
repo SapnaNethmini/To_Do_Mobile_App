@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/theme/useTheme';
 import { spacing, typography, fonts } from '@/theme';
@@ -16,51 +17,56 @@ export const TodoItem = memo(function TodoItem({ todo, onToggle, onDelete, onPre
   const t = useTheme();
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => onPress(todo.id)}
-      style={[styles.row, { borderBottomColor: t.border }]}
+    <Animated.View
+      entering={FadeIn.duration(180)}
+      exiting={FadeOut.duration(150)}
     >
       <Pressable
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: todo.completed }}
-        onPress={() => onToggle(todo.id, !todo.completed)}
-        style={[
-          styles.checkbox,
-          {
-            borderColor: todo.completed ? t.primary : t.border,
-            backgroundColor: todo.completed ? t.primary : 'transparent',
-          },
-        ]}
-        hitSlop={8}
-      >
-        {todo.completed ? <Feather name="check" size={12} color="#fff" /> : null}
-      </Pressable>
-
-      <Text
-        style={[
-          styles.title,
-          {
-            color: todo.completed ? t.textMuted : t.text,
-            fontFamily: fonts.regular,
-            textDecorationLine: todo.completed ? 'line-through' : 'none',
-          },
-        ]}
-        numberOfLines={2}
-      >
-        {todo.title}
-      </Text>
-
-      <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Delete todo"
-        onPress={() => onDelete(todo.id)}
-        hitSlop={8}
-        style={styles.deleteBtn}
+        onPress={() => onPress(todo.id)}
+        style={[styles.row, { borderBottomColor: t.border }]}
       >
-        <Feather name="trash-2" size={16} color={t.textMuted} />
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: todo.completed }}
+          onPress={() => onToggle(todo.id, !todo.completed)}
+          style={[
+            styles.checkbox,
+            {
+              borderColor: todo.completed ? t.primary : t.border,
+              backgroundColor: todo.completed ? t.primary : 'transparent',
+            },
+          ]}
+          hitSlop={8}
+        >
+          {todo.completed ? <Feather name="check" size={12} color="#fff" /> : null}
+        </Pressable>
+
+        <Text
+          style={[
+            styles.title,
+            {
+              color: todo.completed ? t.textMuted : t.text,
+              fontFamily: fonts.regular,
+              textDecorationLine: todo.completed ? 'line-through' : 'none',
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {todo.title}
+        </Text>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Delete todo"
+          onPress={() => onDelete(todo.id)}
+          hitSlop={8}
+          style={styles.deleteBtn}
+        >
+          <Feather name="trash-2" size={16} color={t.textMuted} />
+        </Pressable>
       </Pressable>
-    </Pressable>
+    </Animated.View>
   );
 });
 

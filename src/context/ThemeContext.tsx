@@ -1,19 +1,48 @@
-// Sprint 1 stub. Real implementation (mode persistence + override) lands in Sprint 5.
-// For now, tracks the system color scheme via useColorScheme().
-
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export type ThemeMode = 'system' | 'light' | 'dark';
 
 type ThemeContextValue = {
-  scheme: 'light' | 'dark';
+  mode: ThemeMode;
+  colorScheme: 'light' | 'dark';
+  setMode: (mode: ThemeMode) => void;
 };
+
+const STORAGE_KEY = 'todo.theme';
 
 const ThemeCtx = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
-  const scheme: 'light' | 'dark' = system === 'dark' ? 'dark' : 'light';
-  return <ThemeCtx.Provider value={{ scheme }}>{children}</ThemeCtx.Provider>;
+  const [mode, setModeState] = useState<ThemeMode>('system');
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    void AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
+      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+        setModeState(stored);
+      }
+      setHydrated(true);
+    });
+  }, []);
+
+  function setMode(next: ThemeMode) {
+    setModeState(next);
+    void AsyncStorage.setItem(STORAGE_KEY, next);
+  }
+
+  const colorScheme: 'light' | 'dark' =
+    mode === 'system' ? (system === 'dark' ? 'dark' : 'light') : mode;
+
+  if (!hydrated) return null;
+
+  return (
+    <ThemeCtx.Provider value={{ mode, colorScheme, setMode }}>
+      {children}
+    </ThemeCtx.Provider>
+  );
 }
 
 export function useThemeMode(): ThemeContextValue {
