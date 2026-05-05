@@ -15,6 +15,7 @@ import {
 import { queryClient } from '@/config/queryClient';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { ToastMount } from '@/components/ui/Toast';
 
 import '@/config/env'; // fail-fast env validation at boot
 
@@ -47,6 +48,7 @@ export default function RootLayout() {
           <AuthProvider>
             <ThemeProvider>
               <Slot />
+              <ToastMount />
             </ThemeProvider>
           </AuthProvider>
         </QueryClientProvider>

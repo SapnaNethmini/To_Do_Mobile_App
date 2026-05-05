@@ -75,15 +75,15 @@ Replace the stub `AuthContext` with the real one: users can register, log in, an
 
 ## Definition of Done
 
-- [ ] All Sprint 1 + Sprint 2 Definition of Done items still pass.
-- [ ] Schema unit tests green.
-- [ ] Register a brand-new user from the device → land on Dashboard placeholder.
-- [ ] Wrong-password message is generic (no field-specific reveal).
-- [ ] Duplicate-email register surfaces under the email input.
-- [ ] Force-quit + reopen keeps the user logged in.
-- [ ] Corrupt-token test redirects to `/login`.
-- [ ] Logout clears SecureStore (`null` on next read) and Query cache.
-- [ ] No token value appears in `console.log`, Reactotron, or Metro logs (manual grep).
+- [x] All Sprint 1 + Sprint 2 Definition of Done items still pass.
+- [x] Schema unit tests green.
+- [x] Register a brand-new user from the device → land on Dashboard placeholder.
+- [x] Wrong-password message is generic (no field-specific reveal).
+- [x] Duplicate-email register surfaces under the email input.
+- [x] Force-quit + reopen keeps the user logged in.
+- [x] Corrupt-token test redirects to `/login`.
+- [x] Logout clears SecureStore (`null` on next read) and Query cache.
+- [x] No token value appears in `console.log`, Reactotron, or Metro logs (manual grep).
 
 ## Risks & Mitigations
 
