@@ -51,8 +51,8 @@ export function Button({ variant = 'primary', size = 'md', loading, children, on
     danger: t.danger,
   };
 
-  async function handlePress(e: Parameters<NonNullable<PressableProps['onPress']>>[0]) {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  function handlePress(e: Parameters<NonNullable<PressableProps['onPress']>>[0]) {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress?.(e);
   }
 
