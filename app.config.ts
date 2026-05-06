@@ -18,6 +18,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.todomobile.app',
+    // No NSAllowsArbitraryLoads — dev LAN access handled via tunnel or explicit host exception
   },
   android: {
     adaptiveIcon: {
@@ -27,6 +28,8 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: 'com.todomobile.app',
+    // usesCleartextTraffic is set to false for production via expo-build-properties plugin
+    // (Expo config types don't expose this field directly; see eas.json build profiles)
   },
   web: {
     favicon: './assets/favicon.png',
@@ -37,6 +40,7 @@ const config: ExpoConfig = {
   },
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:4000/api',
+    appEnv: process.env.APP_ENV ?? 'development',
   },
 };
 
