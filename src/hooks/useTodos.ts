@@ -109,8 +109,9 @@ export function useUpdateTodo(status: TodoStatus) {
       hapticError();
       showError('Failed to update todo');
     },
-    onSettled: () => {
+    onSettled: (_data, _error, { id }) => {
       void qc.invalidateQueries({ queryKey: ['todos', 'list'] });
+      void qc.invalidateQueries({ queryKey: qk.detail(id) });
     },
   });
 }

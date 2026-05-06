@@ -13,5 +13,5 @@ export function showError(message: string) {
 }
 
 export function showSuccess(message: string) {
-  ToastLib.show({ type: 'success', text1: message });
+  ToastLib.show({ type: 'success', text1: message, visibilityTime: 1500 });
 }
