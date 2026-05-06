@@ -1,10 +1,10 @@
-import axios from 'axios';
+import { create } from 'axios';
 import type { AxiosError } from 'axios';
 import { env } from '@/config/env';
 import { tokenStorage } from '@/services/token.storage';
 import { normalizeApiError } from './errors';
 
-export const api = axios.create({
+export const api = create({
   baseURL: env.apiUrl,
   timeout: 10_000,
 });
