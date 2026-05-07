@@ -2,110 +2,130 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Repository status
-
-This is a **pre-implementation planning repository**. No source code exists yet — only design documents under `.claude/`. Future instances starting work here should treat the docs as the source of truth and follow Phase 1 of the plan to bootstrap the actual Expo project.
-
-## Document hierarchy (read in this order)
-
-1. **`.claude/todo_mobile_blueprint.md`** — full architectural blueprint with rationale, code examples, trade-offs. Reach for this when you need to understand *why* a decision was made.
-2. **`.claude/specs/spec.md`** — distilled, build-ready specification. Locks the stack, folder structure, API contract, acceptance criteria. **No substitutions allowed without updating both the spec and the blueprint.**
-3. **`.claude/plans/create_plan.md`** — step-by-step execution plan with Files / Commands / Verify gates per phase. Drive implementation from this.
-
-If a spec/plan disagrees with the blueprint, the spec wins (it's the locked contract); raise the conflict explicitly rather than silently following one.
-
 ## Project context
 
-This mobile app is **one of two clients** sharing a single backend:
+This is a fully-implemented React Native + Expo mobile app — one of two clients sharing a single backend:
 
-- **Web app** (existing, working): `C:\Users\sapna\Desktop\TO_DO\To_do_web` — React + Vite + TS + Tailwind frontend, Express + SQLite backend.
-- **Mobile app** (this repo): React Native + Expo client.
+- **Web app**: `C:\Users\sapna\Desktop\TO_DO\To_do_web` — React + Vite + TS + Tailwind, Express + SQLite backend.
+- **Mobile app** (this repo): React Native + Expo client consuming the same REST API.
 
-The mobile app **reuses the existing backend at `../To_do_web/server` without forking it**. Same REST endpoints, same Zod validation rules, same error envelope. Do not stand up a second backend or duplicate database logic on-device.
+The mobile app **reuses the existing backend at `../To_do_web/server`** without forking it. Same endpoints, same Zod validation rules, same error envelope. Do not stand up a second backend.
 
-## Locked architectural decisions
-
-These are decided — do not relitigate without updating the spec:
-
-- **Expo Router** (file-based) for navigation, not React Navigation directly.
-- **`@tanstack/react-query` v5** owns server state (todo list + mutations); React Context owns auth state only.
-- **`expo-secure-store`** for the JWT (Keychain/Keystore-backed). Never `AsyncStorage` for tokens.
-- **`Authorization: Bearer <jwt>`** header for mobile auth. Web continues to use httpOnly cookies — the backend supports both.
-- **`StyleSheet.create` + a typed theme module** (`src/theme/`) for styling — **no NativeWind, no Tailwind on mobile**. Tokens (palette / spacing / radii / typography / shadows) are extracted once from the web app's Tailwind config into `src/theme/`; `useTheme()` resolves light/dark via `useColorScheme()`. Visual parity with web preserved (Slate/Indigo palette, Inter font, `rounded-xl` cards = `radii.xl: 12`).
-- **TypeScript strict** with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. No `any`.
-- Files ≤ ~150 lines; one responsibility per file; routes in `app/` stay thin and delegate to `src/`.
-
-## Required backend changes (apply once, in Phase 4)
-
-Before mobile auth can work, four backwards-compatible edits to `../To_do_web/server` are required (full diff in `spec.md §5` and `create_plan.md` Phase 4):
-
-1. `auth.mw.ts` — accept JWT from `Authorization: Bearer` header in addition to cookie.
-2. `auth.ctrl.ts` — return `{ user, token }` in login response body.
-3. `app.ts` + `.env` — expand CORS allowlist to include LAN dev origins.
-4. `server.ts` — bind `0.0.0.0` so devices on LAN can reach it.
-
-After applying, **re-run the web app's full flow** (register/login/logout/CRUD) to confirm no regressions before moving on.
-
-## Network configuration (the `localhost` trap)
-
-A device cannot reach the dev server via `localhost` — pick the right URL per target. This matrix lives in the spec but is the most common source of confusion:
-
-| Target              | `EXPO_PUBLIC_API_URL`                      |
-|---------------------|---------------------------------------------|
-| iOS Simulator       | `http://localhost:4000/api`                 |
-| Android Emulator    | `http://10.0.2.2:4000/api`                  |
-| Physical (Expo Go)  | `http://<LAN-IP>:4000/api`                  |
-| Production          | `https://api.yourdomain.com/api`            |
-
-Phone and dev machine must share Wi-Fi; if AP isolation blocks it, use `npx expo start --tunnel`.
-
-## Development commands (post-bootstrap)
-
-These don't work yet — they will after Phase 1 of the plan creates `package.json`:
+## Development commands
 
 ```bash
-npx expo start                # Metro + QR code
-npx expo start --clear        # nuke Metro cache
-npx expo start --tunnel       # if LAN routing fails
-npx tsc --noEmit              # typecheck
-npx eslint . --ext .ts,.tsx   # lint
-npx jest                      # run all tests
-npx jest src/api              # run a folder
+npx expo start              # start Metro + QR code
+npx expo start --android    # open in Android emulator
+npx expo start --ios        # open in iOS simulator
+npx expo start --clear      # nuke Metro cache
+npx expo start --tunnel     # if LAN routing fails (physical device)
+
+npx tsc --noEmit            # typecheck
+npx eslint . --ext .ts,.tsx # lint (no-any is an error)
+npx jest                    # run all tests
+npx jest src/api            # run tests in a folder
 npx jest -t "normalizeApiError"  # run by test name
 ```
 
-## Working on this repo
+## Architecture
 
-- When implementing: drive from `create_plan.md`, advance phase-by-phase, satisfy each `Verify` gate before moving on.
-- When the user asks a "why" question: cite the blueprint section.
-- When the user asks "what should I build next": cite the plan's current phase.
-- When code disagrees with the spec: the spec is the contract — fix the code or, if the spec is wrong, propose updating the spec first.
-- The blueprint and spec already include code samples for the harder pieces (axios interceptors, AuthContext, optimistic React Query mutations, SecureStore wrapper). Copy them rather than reinventing.
+### Navigation — `app/` (Expo Router file-based)
 
-## Git workflow (strict)
+```
+app/
+  _layout.tsx          # root layout: loads fonts, mounts all providers
+  (auth)/              # unauthenticated routes (redirect out when authed)
+    login.tsx
+    register.tsx
+  (app)/               # protected routes (redirect to login when unauthed)
+    index.tsx          # dashboard: todo list + filter tabs + FAB
+    settings.tsx
+    todos/[id].tsx     # todo detail / edit screen
+```
 
-**Base branch:** `main`. **Default remote:** `origin` on GitHub.
+Routes stay thin — all logic lives in `src/`.
 
-### Feature work (anything that touches application code)
+### Source — `src/`
 
-1. Every new feature gets a **tag** (a short label, e.g. `ui-redesign`, `optimistic-toggle`, `theme-picker`).
-2. The tag becomes the branch slug: `feat/<tag>` for features, `fix/<tag>` for bug fixes.
-3. **Always start a feature branch from `main`.** `git checkout main && git pull && git checkout -b feat/<tag>`.
-4. **Before creating a new branch, the current branch must be fully shipped** — committed, pushed, and have a PR open against `main`. No half-finished work left behind.
-5. Commits follow Conventional Commits: `feat: …`, `fix: …`, `chore: …`, `docs: …`, `refactor: …`, `test: …`. Pick the verb that matches the change.
-6. Push and open a PR with `gh pr create --base main`.
+| Path | Responsibility |
+|------|---------------|
+| `api/client.ts` | Axios instance: JWT header injection via request interceptor, 401 token-clear via response interceptor |
+| `api/auth.api.ts` / `todos.api.ts` | Per-resource endpoint functions; `todos.api.ts` normalizes snake_case → camelCase |
+| `api/errors.ts` | `normalizeApiError` — maps Axios errors to a typed `ApiError` |
+| `context/AuthContext.tsx` | Auth state machine (`loading → authenticated/unauthenticated`), boots by calling `/auth/me` with stored token |
+| `context/ThemeContext.tsx` | Light/dark/system toggle, persisted to AsyncStorage |
+| `hooks/useTodos.ts` | All React Query hooks: `useTodoList`, `useTodoDetail`, `useCreateTodo`, `useUpdateTodo`, `useDeleteTodo` with optimistic updates |
+| `services/token.storage.ts` | `expo-secure-store` wrapper keyed `todo.jwt`, accessibility `AFTER_FIRST_UNLOCK` |
+| `theme/` | Design tokens (palette, spacing, radii, typography, shadows) + `useTheme()` hook |
+| `schemas/` | Zod schemas for auth and todo forms |
+| `types/` | Branded types: `TodoId`, `UserId`; `ApiError` shape |
+| `components/ui/` | Base components: `Button`, `Input`, `Card`, `Badge`, `Skeleton`, `EmptyState`, `Toast` |
+| `components/todos/` | Feature components: `TodoItem`, `TodoForm`, `FilterTabs`, `ProgressSection` |
+| `config/env.ts` | Zod-validated `EXPO_PUBLIC_API_URL` |
+| `config/queryClient.ts` | React Query `QueryClient` singleton |
 
-### Exempt from the branch rule
+### State ownership
 
-These can be committed on the current branch (whatever it is) — no new feature branch required:
+| What | Tool |
+|------|------|
+| Server state (todos) | React Query v5 (`src/hooks/useTodos.ts`) |
+| Auth | React Context (`src/context/AuthContext.tsx`) |
+| Theme mode | React Context + AsyncStorage |
+| Form state | React Hook Form + Zod resolvers |
 
-- `CLAUDE.md`
-- `.claude/skills.md` (or any skills file)
-- Slash commands under `.claude/commands/`
-- **Anything under `.claude/`** (specs, plans, blueprints, sprints, agents)
+### Design decisions (do not relitigate without updating `.claude/specs/spec.md`)
 
-Rationale: these are meta-files about how the project is run, not the product itself. Forcing a feature branch for a docs tweak just creates ceremony.
+- **Expo Router** for navigation — not React Navigation directly.
+- **`expo-secure-store`** for the JWT — never `AsyncStorage` for tokens.
+- **`Authorization: Bearer <jwt>`** on every request — the backend accepts both Bearer and cookie.
+- **`StyleSheet.create` + typed theme module** — no NativeWind or Tailwind. `useTheme()` returns the resolved light/dark token set.
+- **TypeScript strict** with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. ESLint enforces no `any`.
+- Files ≤ ~150 lines; one responsibility per file.
+
+## Network configuration
+
+A physical device cannot reach the dev server via `localhost`:
+
+| Target | `EXPO_PUBLIC_API_URL` |
+|--------|----------------------|
+| iOS Simulator | `http://localhost:4000/api` |
+| Android Emulator | `http://10.0.2.2:4000/api` |
+| Physical device (Expo Go) | `http://<LAN-IP>:4000/api` |
+| Production | `https://api.yourdomain.com/api` |
+
+Device and machine must share Wi-Fi; if AP isolation blocks it, use `--tunnel`.
+
+## Backend requirements
+
+The backend (`../To_do_web/server`) needs these four edits for mobile auth (already applied — verify before re-applying):
+
+1. `auth.mw.ts` — accept JWT from `Authorization: Bearer` in addition to cookie.
+2. `auth.ctrl.ts` — return `{ user, token }` in login response body.
+3. `app.ts` + `.env` — CORS allowlist includes LAN dev origins.
+4. `server.ts` — binds `0.0.0.0`.
+
+After any backend change, re-run the full web flow (register/login/logout/CRUD) to confirm no regressions.
+
+## Reference docs
+
+- `.claude/todo_mobile_blueprint.md` — rationale behind architectural decisions.
+- `.claude/specs/spec.md` — locked spec (stack, folder structure, API contract, acceptance criteria). If code disagrees with the spec, fix the code; if the spec is wrong, propose updating it first.
+
+## Git workflow
+
+**Base branch:** `main`. **Default remote:** `origin`.
+
+### Feature work
+
+1. One feature branch per feature: `feat/<tag>` or `fix/<tag>` off `main`.
+2. **Ship the current branch before starting a new one** — committed, pushed, PR open.
+3. Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
+4. Open PRs with `gh pr create --base main`.
+
+### Exempt from branch rule (commit directly on current branch)
+
+- `CLAUDE.md`, anything under `.claude/` (specs, plans, blueprints, sprints, commands, skills).
 
 ### When in doubt
 
-Use `/commit_message` (see `.claude/commands/commit_message.md`) — it implements the rules above end-to-end: detects the kind of change, drafts the right commit message, and decides whether a PR is needed.
+Use `/commit_message` — it detects change type, drafts the message, and decides whether a PR is needed.
